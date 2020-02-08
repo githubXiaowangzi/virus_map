@@ -8,7 +8,8 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.chinatmsproviders";
 import axios from "axios";
 
-import data from "@/mock/data";
+// import data from "@/mock/data";
+import pData from "@/mock/miao"
 // import addressCollection from "@/assets/addressCollection";
 
 const SZ_CENTER = [22.543143497998308, 114.06160783203126];
@@ -32,21 +33,7 @@ const SZ_OUTLINE = {
     fillOpacity: 0
   }
 }
-// const SZ_FULL_URL = "/geojson/sz_full.json";
-// const SZ_OUTLINE_URL = "/geojson/sz_outline.json";
 
-// const SZ_FULL_STYLE = {
-//   weight: 1,
-//   opacity: 1,
-//   color: "#414141",
-//   fillOpacity: 0
-// }
-// const SZ_OUTLINE_STYLE = {
-//   opacity: 0.8,
-//   weight: 8,
-//   color: "#414141",
-//   fillOpacity: 0
-// }
 const POINT_STYLE = {
   radius: 3,
   fillColor: "#f64b3c",
@@ -73,7 +60,45 @@ export default {
         .addTo(this.map);
       this.loadGeoData(SZ_FULL);
       this.loadGeoData(SZ_OUTLINE);
-      this.addPointLayer(data.geojson);
+      // this.addPointLayer(data.geojson);
+      this.addPolygonLayer();
+    },
+    addPolygonLayer() {
+      
+      const cityData = pData.find(city => city.name === "深圳市").pois;
+      const polygonData = cityData.filter(p => p.geometry.type === "Polygon");
+      const pointData = cityData.filter(p => p.geometry.type !== "Polygon");
+      const layer2 = [];
+      pointData.forEach(e => {
+        layer2.push({
+          "type": "Feature",
+          "properties": { "name": e.name },
+          "geometry": e.point
+        })
+      });
+      const l1 = L.geoJSON(layer2, {
+        pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, POINT_STYLE);
+          }
+      }).addTo(this.map);
+      this.bindPopup(l1);
+
+      const layer = [];
+      polygonData.forEach(e => {
+        layer.push({
+          "type": "Feature",
+          "properties": { "name": e.name },
+          "geometry": e.geometry
+        });
+      });
+      const l2 = L.geoJSON(layer).addTo(this.map);
+      this.bindPopup(l2);
+    },
+    bindPopup(lyr) {
+      lyr.eachLayer(function(layer) {
+        const popup = L.popup({autoClose: false,closeOnClick:false}).setContent(layer.feature.properties.name);
+        layer.bindPopup(popup).openPopup();
+      })
     },
     addPointLayer(geojson) {
       L.geoJSON(geojson, {
@@ -95,32 +120,6 @@ export default {
       });
       return layer;
     },
-    // async loadGeoData() {
-    //   await axios
-    //     .get(`/geojson/sz_full.json`)
-    //     .then(res => {
-    //       if (res.status === 200 && res.statusText === "OK") {
-    //         return res.data;
-    //       }
-    //     })
-    //     .then(geofile => {
-    //       L.geoJSON(geofile.features, {
-    //         style: SZ_FULL_STYLE
-    //       }).addTo(this.map);
-    //     });
-    //   await axios
-    //     .get(`/geojson/sz_outline.json`)
-    //     .then(res => {
-    //       if (res.status === 200 && res.statusText === "OK") {
-    //         return res.data;
-    //       }
-    //     })
-    //     .then(geofile => {
-    //       L.geoJSON(geofile.features, {
-    //         style: SZ_OUTLINE_STYLE
-    //       }).addTo(this.map);
-    //     });
-    // },
     // parseGeocode({location, formatted_address, district}) {
     //   let str = location.split(',');
     //   let coordinates = [
